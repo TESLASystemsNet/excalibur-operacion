@@ -1,0 +1,20 @@
+server:
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: backend-excalibur
+  datasource:
+    url: ${EXCALIBUR_DB_URL:jdbc:postgresql://127.0.0.1:5432/excalibur}
+    username: ${EXCALIBUR_DB_USER:postgres}
+    password: ${EXCALIBUR_DB_PASSWORD:admin}
+    driver-class-name: org.postgresql.Driver
+
+excalibur:
+  security:
+    jwt-secret: ${EXCALIBUR_JWT_SECRET:dev-excalibur-secret-change-me-dev-excalibur-secret}
+    jwt-expiration-minutes: ${EXCALIBUR_JWT_EXPIRATION_MINUTES:480}
+
+logging:
+  level:
+    mx.com.excalibur.operacion: INFO

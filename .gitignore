@@ -1,0 +1,14 @@
+# Java / Maven
+backend-excalibur/target/
+
+# Node / Vue
+frontend-excalibur/node_modules/
+frontend-excalibur/dist/
+
+# Logs and local runtime files
+*.log
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
