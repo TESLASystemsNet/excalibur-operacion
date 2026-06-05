@@ -512,7 +512,7 @@
                       <span>{{ item.estacionTipo }}</span>
                     </td>
                     <td>{{ item.turnoNombre }}</td>
-                    <td>{{ item.fechaOperacion }}</td>
+                    <td>{{ formatDate(item.fechaOperacion) }}</td>
                     <td>
                       <span class="role-pill">{{ item.rolOperativo }}</span>
                     </td>
@@ -568,7 +568,7 @@
                     <td>
                       <span class="role-pill">{{ item.tipo }}</span>
                     </td>
-                    <td>{{ item.fechaVencimiento || 'Sin vencimiento' }}</td>
+                    <td>{{ formatNullableDate(item.fechaVencimiento, 'Sin vencimiento') }}</td>
                     <td>
                       <span class="status-pill" :class="{ danger: item.estado !== 'DISPONIBLE' }">
                         {{ item.estado }}
@@ -775,7 +775,15 @@
               </label>
               <label>
                 Fecha operacion
-                <input v-model="assignmentForm.fechaOperacion" type="date" required />
+                <input
+                  v-model.trim="assignmentForm.fechaOperacion"
+                  inputmode="numeric"
+                  maxlength="10"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                  placeholder="dd/mm/aaaa"
+                  required
+                  @blur="assignmentForm.fechaOperacion = normalizeDisplayDate(assignmentForm.fechaOperacion)"
+                />
               </label>
               <label>
                 Rol operativo
@@ -805,7 +813,14 @@
               </label>
               <label>
                 Fecha vencimiento
-                <input v-model="cardForm.fechaVencimiento" type="date" />
+                <input
+                  v-model.trim="cardForm.fechaVencimiento"
+                  inputmode="numeric"
+                  maxlength="10"
+                  pattern="\d{2}/\d{2}/\d{4}"
+                  placeholder="dd/mm/aaaa"
+                  @blur="cardForm.fechaVencimiento = normalizeDisplayDate(cardForm.fechaVencimiento)"
+                />
               </label>
               <label>
                 Estado
@@ -1013,7 +1028,7 @@ const assignmentForm = reactive({
   usuarioId: 0,
   estacionId: 0,
   turnoId: 0,
-  fechaOperacion: new Date().toISOString().slice(0, 10),
+  fechaOperacion: todayDisplayDate(),
   rolOperativo: 'SUPERVISOR' as 'SUPERVISOR' | 'TESORERO' | 'CAJERO',
   activa: true
 })
@@ -1158,13 +1173,21 @@ async function saveOperationalAssignment() {
     errorMessage.value = 'Selecciona usuario, estacion y turno'
     return
   }
+  const fechaOperacion = toApiDate(assignmentForm.fechaOperacion)
+  if (!fechaOperacion) {
+    errorMessage.value = 'La fecha de operacion debe tener formato dd/mm/aaaa'
+    return
+  }
   await withLoading(async () => {
-    await createOperationalAssignment(assignmentForm)
+    await createOperationalAssignment({
+      ...assignmentForm,
+      fechaOperacion
+    })
     Object.assign(assignmentForm, {
       usuarioId: 0,
       estacionId: 0,
       turnoId: 0,
-      fechaOperacion: new Date().toISOString().slice(0, 10),
+      fechaOperacion: todayDisplayDate(),
       rolOperativo: 'SUPERVISOR',
       activa: true
     })
@@ -1174,10 +1197,15 @@ async function saveOperationalAssignment() {
 }
 
 async function saveCardRange() {
+  const fechaVencimiento = toNullableApiDate(cardRangeForm.fechaVencimiento)
+  if (cardRangeForm.fechaVencimiento && !fechaVencimiento) {
+    errorMessage.value = 'La fecha de vencimiento debe tener formato dd/mm/aaaa'
+    return
+  }
   await withLoading(async () => {
     await createOperationalCardRange({
       ...cardRangeForm,
-      fechaVencimiento: cardRangeForm.fechaVencimiento || null
+      fechaVencimiento
     })
     Object.assign(cardRangeForm, {
       numeroInicial: '',
@@ -1262,7 +1290,7 @@ function editOperationalAssignment(item: OperationalAssignment) {
     usuarioId: item.usuarioId,
     estacionId: item.estacionId,
     turnoId: item.turnoId,
-    fechaOperacion: item.fechaOperacion,
+    fechaOperacion: formatDate(item.fechaOperacion),
     rolOperativo: item.rolOperativo,
     activa: item.activa
   })
@@ -1274,7 +1302,7 @@ function editOperationalCard(item: OperationalCard) {
   Object.assign(cardForm, {
     numeroTarjeta: item.numeroTarjeta,
     tipo: item.tipo,
-    fechaVencimiento: item.fechaVencimiento ?? '',
+    fechaVencimiento: formatNullableDate(item.fechaVencimiento),
     estado: item.estado
   })
 }
@@ -1299,7 +1327,7 @@ function resetOperationalForms() {
     usuarioId: 0,
     estacionId: 0,
     turnoId: 0,
-    fechaOperacion: new Date().toISOString().slice(0, 10),
+    fechaOperacion: todayDisplayDate(),
     rolOperativo: 'SUPERVISOR',
     activa: true
   })
@@ -1345,18 +1373,32 @@ async function saveConfigEdit() {
         errorMessage.value = 'Selecciona usuario, estacion y turno'
         return
       }
+      const fechaOperacion = toApiDate(assignmentForm.fechaOperacion)
+      if (!fechaOperacion) {
+        errorMessage.value = 'La fecha de operacion debe tener formato dd/mm/aaaa'
+        return
+      }
+      const payload = {
+        ...assignmentForm,
+        fechaOperacion
+      }
       if (selectedConfigId.value) {
-        await updateOperationalAssignment(selectedConfigId.value, assignmentForm)
+        await updateOperationalAssignment(selectedConfigId.value, payload)
         successMessage.value = 'Asignacion actualizada'
       } else {
-        await createOperationalAssignment(assignmentForm)
+        await createOperationalAssignment(payload)
         successMessage.value = 'Asignacion creada'
       }
     }
     if (configEditor.value === 'card') {
+      const fechaVencimiento = toNullableApiDate(cardForm.fechaVencimiento)
+      if (cardForm.fechaVencimiento && !fechaVencimiento) {
+        errorMessage.value = 'La fecha de vencimiento debe tener formato dd/mm/aaaa'
+        return
+      }
       const payload = {
         ...cardForm,
-        fechaVencimiento: cardForm.fechaVencimiento || null
+        fechaVencimiento
       }
       if (selectedConfigId.value) {
         await updateOperationalCard(selectedConfigId.value, payload)
@@ -1521,11 +1563,90 @@ function userStatus(user: UserSummary) {
   return 'Activo'
 }
 
+function todayDisplayDate() {
+  const today = new Date()
+  return [
+    String(today.getDate()).padStart(2, '0'),
+    String(today.getMonth() + 1).padStart(2, '0'),
+    today.getFullYear()
+  ].join('/')
+}
+
+function formatDate(value: string) {
+  const parts = parseApiDate(value)
+  if (!parts) return value
+  return [parts.day, parts.month, parts.year].join('/')
+}
+
+function formatNullableDate(value: string | null, fallback = '') {
+  return value ? formatDate(value) : fallback
+}
+
+function toNullableApiDate(value: string) {
+  return value.trim() ? toApiDate(value) : null
+}
+
+function normalizeDisplayDate(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  const match = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed)
+  if (!match) return trimmed
+  const [, day, month, year] = match
+  const normalizedDay = day.padStart(2, '0')
+  const normalizedMonth = month.padStart(2, '0')
+  return isValidDateParts(normalizedDay, normalizedMonth, year)
+    ? `${normalizedDay}/${normalizedMonth}/${year}`
+    : trimmed
+}
+
+function toApiDate(value: string) {
+  const trimmed = value.trim()
+  const displayMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(trimmed)
+  if (displayMatch) {
+    const [, day, month, year] = displayMatch
+    const normalizedDay = day.padStart(2, '0')
+    const normalizedMonth = month.padStart(2, '0')
+    return isValidDateParts(normalizedDay, normalizedMonth, year)
+      ? `${year}-${normalizedMonth}-${normalizedDay}`
+      : null
+  }
+  const apiParts = parseApiDate(trimmed)
+  return apiParts && isValidDateParts(apiParts.day, apiParts.month, apiParts.year)
+    ? `${apiParts.year}-${apiParts.month}-${apiParts.day}`
+    : null
+}
+
+function parseApiDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value)
+  if (!match) return null
+  const [, year, month, day] = match
+  return { year, month, day }
+}
+
+function isValidDateParts(day: string, month: string, year: string) {
+  const dayNumber = Number(day)
+  const monthNumber = Number(month)
+  const yearNumber = Number(year)
+  const date = new Date(yearNumber, monthNumber - 1, dayNumber)
+  return (
+    date.getFullYear() === yearNumber &&
+    date.getMonth() === monthNumber - 1 &&
+    date.getDate() === dayNumber
+  )
+}
+
 function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat('es-MX', {
-    dateStyle: 'short',
-    timeStyle: 'short'
-  }).format(new Date(value))
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  const time = new Intl.DateTimeFormat('es-MX', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }).format(date)
+  return `${day}/${month}/${year} ${time}`
 }
 
 function hasAnyRole(expectedRoles: string[]) {
