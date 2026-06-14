@@ -9,6 +9,10 @@ public record OperationalCard(
         String tipo,
         LocalDate fechaVencimiento,
         String estado,
+        String clienteNombre,
+        Boolean capturadaEgm,
+        String capturaEgmTxid,
+        OffsetDateTime capturaEgmFecha,
         OffsetDateTime fechaCreacion,
         OffsetDateTime fechaActualizacion
 ) {

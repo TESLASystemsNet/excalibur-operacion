@@ -11,6 +11,8 @@ spring:
     driver-class-name: org.postgresql.Driver
 
 excalibur:
+  egm-backend:
+    base-url: ${EXCALIBUR_EGM_BACKEND_BASE_URL:http://127.0.0.1:8080}
   security:
     jwt-secret: ${EXCALIBUR_JWT_SECRET:dev-excalibur-secret-change-me-dev-excalibur-secret}
     jwt-expiration-minutes: ${EXCALIBUR_JWT_EXPIRATION_MINUTES:480}

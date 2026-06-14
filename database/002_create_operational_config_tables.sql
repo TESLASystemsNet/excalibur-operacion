@@ -32,8 +32,33 @@ CREATE TABLE IF NOT EXISTS app.turnos_caja (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_turnos_caja_nombre
     ON app.turnos_caja (upper(nombre));
 
+CREATE TABLE IF NOT EXISTS app.cajas_operativas (
+    id_caja BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(255),
+    principal BOOLEAN NOT NULL DEFAULT FALSE,
+    activa BOOLEAN NOT NULL DEFAULT TRUE,
+    fecha_creacion TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    fecha_actualizacion TIMESTAMPTZ,
+    creado_por BIGINT REFERENCES app.usuarios(id_usuario),
+    actualizado_por BIGINT REFERENCES app.usuarios(id_usuario),
+    CONSTRAINT ck_cajas_operativas_nombre_no_vacio CHECK (btrim(nombre) <> '')
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cajas_operativas_nombre
+    ON app.cajas_operativas (upper(nombre));
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_cajas_operativas_principal
+    ON app.cajas_operativas (principal)
+    WHERE principal = TRUE;
+
+INSERT INTO app.cajas_operativas (nombre, descripcion, principal, activa)
+VALUES ('Caja Principal', 'Caja contable global para operacion general', TRUE, TRUE)
+ON CONFLICT DO NOTHING;
+
 CREATE TABLE IF NOT EXISTS app.estaciones_operativas (
     id_estacion BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    id_caja BIGINT REFERENCES app.cajas_operativas(id_caja),
     nombre VARCHAR(100) NOT NULL,
     tipo VARCHAR(20) NOT NULL,
     sala VARCHAR(100),
@@ -52,6 +77,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_estaciones_operativas_nombre
 
 CREATE INDEX IF NOT EXISTS ix_estaciones_operativas_tipo_activa
     ON app.estaciones_operativas (tipo, activa);
+
+CREATE INDEX IF NOT EXISTS ix_estaciones_operativas_caja
+    ON app.estaciones_operativas (id_caja, activa);
 
 CREATE TABLE IF NOT EXISTS app.asignaciones_operativas (
     id_asignacion BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

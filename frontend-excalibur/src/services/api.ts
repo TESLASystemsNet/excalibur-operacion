@@ -1,12 +1,24 @@
 import axios from 'axios'
 import type {
+  CashierConsole,
+  CustomerRegistration,
+  CashierMovement,
+  CashierSession,
   CashierShift,
+  EgmMeterSnapshot,
   LoginResponse,
   OperationSchedule,
   OperationalAssignment,
   OperationalAuditEvent,
   OperationalCard,
+  OperationalCloseSummary,
+  OperationalDay,
   Role,
+  TreasuryCardMovement,
+  TreasuryConsole,
+  TreasuryLedgerEntry,
+  TreasuryMovement,
+  TreasurySession,
   UserDetail,
   UserForm,
   UserSummary,
@@ -143,12 +155,14 @@ export async function getWorkstations() {
   return data
 }
 
-export async function createWorkstation(form: Omit<Workstation, 'id'>) {
+type WorkstationPayload = Omit<Workstation, 'id' | 'cajaNombre'>
+
+export async function createWorkstation(form: WorkstationPayload) {
   const { data } = await api.post<Workstation>('/api/operational-config/workstations', form)
   return data
 }
 
-export async function updateWorkstation(id: number, form: Omit<Workstation, 'id'>) {
+export async function updateWorkstation(id: number, form: WorkstationPayload) {
   await api.put(`/api/operational-config/workstations/${id}`, form)
 }
 
@@ -158,6 +172,201 @@ export async function deleteWorkstation(id: number) {
 
 export async function getOperationalAssignments() {
   const { data } = await api.get<OperationalAssignment[]>('/api/operational-config/assignments')
+  return data
+}
+
+export async function getCurrentOperationalDay() {
+  const response = await api.get<OperationalDay | ''>('/api/operational-config/operational-day/current', {
+    validateStatus: (status) => status === 200 || status === 204
+  })
+  return response.status === 204 ? null : (response.data as OperationalDay)
+}
+
+export async function openOperationalDay(form: { fechaJornada: string; observaciones?: string | null }) {
+  const { data } = await api.post<OperationalDay>('/api/operational-config/operational-day/open', form)
+  return data
+}
+
+export async function getOperationalClose() {
+  const response = await api.get<OperationalCloseSummary | ''>('/api/operational-config/operational-day/close', {
+    validateStatus: (status) => status === 200 || status === 204
+  })
+  return response.status === 204 ? null : (response.data as OperationalCloseSummary)
+}
+
+export async function getCurrentEgmSnapshots() {
+  const { data } = await api.get<EgmMeterSnapshot[]>('/api/operational-config/operational-day/current/egm-snapshots')
+  return data
+}
+
+export async function closeOperationalDay(form: { observaciones?: string | null; forzarConDiferencias?: boolean }) {
+  const { data } = await api.post<OperationalCloseSummary>('/api/operational-config/operational-day/close', form)
+  return data
+}
+
+export async function testEgmSweep() {
+  const { data } = await api.post<EgmMeterSnapshot[]>('/api/operational-config/operational-day/egm-sweep/test')
+  return data
+}
+
+export async function getTreasuryConsole() {
+  const { data } = await api.get<TreasuryConsole>('/api/operational-config/treasury/console')
+  return data
+}
+
+export async function getTreasuryMovements() {
+  const { data } = await api.get<TreasuryMovement[]>('/api/operational-config/treasury/movements')
+  return data
+}
+
+export async function getTreasuryLedger() {
+  const { data } = await api.get<TreasuryLedgerEntry[]>('/api/operational-config/treasury/ledger')
+  return data
+}
+
+export async function openTreasury(form: { estacionId: number; saldoInicial: number; observaciones?: string | null }) {
+  const { data } = await api.post<TreasurySession>('/api/operational-config/treasury/open', form)
+  return data
+}
+
+export async function createTreasuryMovement(form: {
+  tipo: 'ENTRADA' | 'SALIDA'
+  concepto: string
+  monto: number
+  estacionCajaId?: number | null
+  turnoId?: number | null
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<TreasuryMovement>('/api/operational-config/treasury/movements', form)
+  return data
+}
+
+export async function sendTreasuryBoxFund(form: {
+  concepto: string
+  monto: number
+  estacionCajaId: number
+  turnoId?: number | null
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<TreasuryMovement>('/api/operational-config/treasury/box-fund', form)
+  return data
+}
+
+export async function receiveTreasuryCashReturn(form: {
+  concepto: string
+  monto: number
+  estacionCajaId: number
+  turnoId?: number | null
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<TreasuryMovement>('/api/operational-config/treasury/cash-return', form)
+  return data
+}
+
+export async function deliverTreasuryCardRange(form: {
+  estacionCajaId: number
+  turnoId?: number | null
+  numeroInicial: string
+  numeroFinal: string
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<TreasuryCardMovement>('/api/operational-config/treasury/card-delivery', form)
+  return data
+}
+
+export async function receiveTreasuryCardReturn(form: {
+  estacionCajaId: number
+  turnoId?: number | null
+  numeroInicial: string
+  numeroFinal: string
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<TreasuryCardMovement>('/api/operational-config/treasury/card-return', form)
+  return data
+}
+
+export async function precloseTreasury(observaciones?: string | null) {
+  const { data } = await api.post<TreasurySession>('/api/operational-config/treasury/preclose', { observaciones })
+  return data
+}
+
+export async function closeTreasury(observaciones?: string | null) {
+  const { data } = await api.post<TreasurySession>('/api/operational-config/treasury/close', { observaciones })
+  return data
+}
+
+export async function getCashierConsole() {
+  const { data } = await api.get<CashierConsole>('/api/operational-config/cashier/console')
+  return data
+}
+
+export async function openCashier(form: {
+  estacionId: number
+  turnoId: number
+  montoApertura: number
+  tarjetasApertura: number
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<CashierSession>('/api/operational-config/cashier/open', form)
+  return data
+}
+
+export async function createCashierSale(form: {
+  numeroTarjeta: string
+  monto: number
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<CashierMovement>('/api/operational-config/cashier/sale', form)
+  return data
+}
+
+export async function createCashierPayout(form: {
+  numeroTarjeta: string
+  monto: number
+  referencia?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<CashierMovement>('/api/operational-config/cashier/payout', form)
+  return data
+}
+
+export async function precloseCashier(form: {
+  montoDeclarado?: number | null
+  tarjetasDevueltas?: number | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<CashierSession>('/api/operational-config/cashier/preclose', form)
+  return data
+}
+
+export async function closeCashier(form: {
+  montoDeclarado: number
+  tarjetasDevueltas: number
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<CashierSession>('/api/operational-config/cashier/close', form)
+  return data
+}
+
+export async function registerCashierCustomer(form: {
+  nombre: string
+  apellidoPaterno?: string | null
+  apellidoMaterno?: string | null
+  telefono?: string | null
+  email?: string | null
+  fechaNacimiento?: string | null
+  documentoIdentidad?: string | null
+  numeroTarjeta: string
+  nip?: string | null
+  observaciones?: string | null
+}) {
+  const { data } = await api.post<CustomerRegistration>('/api/operational-config/cashier/customers', form)
   return data
 }
 

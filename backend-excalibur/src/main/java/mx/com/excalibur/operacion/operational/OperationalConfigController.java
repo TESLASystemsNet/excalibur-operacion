@@ -144,6 +144,289 @@ public class OperationalConfigController {
         return service.findAssignments(fechaOperacion);
     }
 
+    @GetMapping("/operational-day/current")
+    public ResponseEntity<OperationalDay> findCurrentOperationalDay() {
+        OperationalDay current = service.findCurrentOperationalDay();
+        if (current == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(current);
+    }
+
+    @PostMapping("/operational-day/open")
+    public ResponseEntity<OperationalDay> openOperationalDay(
+            @RequestBody OperationalDayOpenRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        OperationalDay opened = service.openOperationalDay(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/operational-day/" + opened.id()))
+                .body(opened);
+    }
+
+    @GetMapping("/operational-day/current/egm-snapshots")
+    public List<EgmMeterSnapshot> findCurrentOperationalDaySnapshots() {
+        return service.findCurrentOperationalDaySnapshots();
+    }
+
+    @GetMapping("/operational-day/close")
+    public ResponseEntity<OperationalCloseSummary> findOperationalClose() {
+        OperationalCloseSummary summary = service.findOperationalCloseSummary();
+        if (summary == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(summary);
+    }
+
+    @PostMapping("/operational-day/close")
+    public OperationalCloseSummary closeOperationalDay(
+            @RequestBody OperationalCloseRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        return service.closeOperationalDay(request, currentUser.id(), ip(servletRequest));
+    }
+
+    @PostMapping("/operational-day/egm-sweep/test")
+    public List<EgmMeterSnapshot> testEgmSweep(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        return service.testEgmSweep(currentUser.id(), ip(servletRequest));
+    }
+
+    @GetMapping("/treasury/console")
+    public TreasuryConsole findTreasuryConsole(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return service.findTreasuryConsole(currentUser.id());
+    }
+
+    @GetMapping("/treasury/movements")
+    public List<TreasuryMovement> findTreasuryMovements() {
+        return service.findTreasuryMovements();
+    }
+
+    @GetMapping("/treasury/ledger")
+    public List<TreasuryLedgerEntry> findTreasuryLedger() {
+        return service.findTreasuryLedger();
+    }
+
+    @PostMapping("/treasury/open")
+    public ResponseEntity<TreasurySession> openTreasury(
+            @Valid @RequestBody TreasuryOpenRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        TreasurySession opened = service.openTreasury(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/treasury/" + opened.id()))
+                .body(opened);
+    }
+
+    @PostMapping("/treasury/movements")
+    public ResponseEntity<TreasuryMovement> createTreasuryMovement(
+            @Valid @RequestBody TreasuryMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        TreasuryMovement created = service.registerTreasuryMovement(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/treasury/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/treasury/box-fund")
+    public ResponseEntity<TreasuryMovement> sendInitialFundToCashier(
+            @Valid @RequestBody TreasuryMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        TreasuryMovement created = service.sendInitialFundToCashier(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/treasury/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/treasury/cash-return")
+    public ResponseEntity<TreasuryMovement> receiveCashReturnFromCashier(
+            @Valid @RequestBody TreasuryMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        TreasuryMovement created = service.receiveCashReturnFromCashier(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/treasury/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/treasury/card-delivery")
+    public ResponseEntity<TreasuryCardMovement> deliverCardRangeToCashier(
+            @Valid @RequestBody TreasuryCardMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        TreasuryCardMovement created = service.deliverCardRangeToCashier(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/treasury/card-movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/treasury/card-return")
+    public ResponseEntity<TreasuryCardMovement> receiveUnusedCardsFromCashier(
+            @Valid @RequestBody TreasuryCardMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        TreasuryCardMovement created = service.receiveUnusedCardsFromCashier(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/treasury/card-movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/treasury/preclose")
+    public TreasurySession precloseTreasury(
+            @RequestBody TreasuryCloseRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        return service.precloseTreasury(request, currentUser.id(), ip(servletRequest));
+    }
+
+    @PostMapping("/treasury/close")
+    public TreasurySession closeTreasury(
+            @RequestBody TreasuryCloseRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        return service.closeTreasury(request, currentUser.id(), ip(servletRequest));
+    }
+
+    @GetMapping("/cashier/console")
+    public CashierConsole findCashierConsole(@AuthenticationPrincipal AuthenticatedUser currentUser) {
+        return service.findCashierConsole(currentUser.id());
+    }
+
+    @PostMapping("/cashier/open")
+    public ResponseEntity<CashierSession> openCashier(
+            @Valid @RequestBody CashierOpenRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierSession opened = service.openCashier(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/" + opened.id()))
+                .body(opened);
+    }
+
+    @PostMapping("/cashier/replenishment")
+    public ResponseEntity<CashierMovement> registerCashierReplenishment(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerCashierReplenishment(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/cash-return")
+    public ResponseEntity<CashierMovement> registerCashierReturn(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerCashierReturn(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/sale")
+    public ResponseEntity<CashierMovement> registerCashierSale(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerCashierSale(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/payout")
+    public ResponseEntity<CashierMovement> registerCashierPayout(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerCashierPayout(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/manual-payment")
+    public ResponseEntity<CashierMovement> registerManualPayment(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerManualPayment(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/special-transaction")
+    public ResponseEntity<CashierMovement> registerSpecialTransaction(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerSpecialTransaction(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/courtesy")
+    public ResponseEntity<CashierMovement> registerCourtesy(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerCourtesy(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/promotional")
+    public ResponseEntity<CashierMovement> registerPromotional(
+            @Valid @RequestBody CashierMovementRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CashierMovement created = service.registerPromotional(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/movements/" + created.id()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/customers")
+    public ResponseEntity<CustomerRegistration> registerCustomerWithCard(
+            @Valid @RequestBody CustomerRegistrationRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        CustomerRegistration created = service.registerCustomerWithCard(request, currentUser.id(), ip(servletRequest));
+        return ResponseEntity.created(URI.create("/api/operational-config/cashier/customers/" + created.clienteId()))
+                .body(created);
+    }
+
+    @PostMapping("/cashier/preclose")
+    public CashierSession precloseCashier(
+            @RequestBody CashierCloseRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        return service.precloseCashier(request, currentUser.id(), ip(servletRequest));
+    }
+
+    @PostMapping("/cashier/close")
+    public CashierSession closeCashier(
+            @RequestBody CashierCloseRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            HttpServletRequest servletRequest
+    ) {
+        return service.closeCashier(request, currentUser.id(), ip(servletRequest));
+    }
+
     @PostMapping("/assignments")
     public ResponseEntity<OperationalAssignment> createAssignment(
             @Valid @RequestBody OperationalAssignmentRequest request,
